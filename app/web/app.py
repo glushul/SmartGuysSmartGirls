@@ -6,6 +6,8 @@ from .routes import setup_routes
 
 __all__ = ("Application",)
 
+from ..store.bot.manager import TOKEN
+
 
 class Application(AiohttpApplication):
     config = None

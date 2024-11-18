@@ -1,9 +1,12 @@
-from aiohttp.web_app import Application
 
 __all__ = ("setup_routes",)
 
+import typing
 
-def setup_routes(application: Application):
+if typing.TYPE_CHECKING:
+    from app.web.app import Application
+
+def setup_routes(application: "Application"):
     import app.users.routes
 
     app.users.routes.register_urls(application)

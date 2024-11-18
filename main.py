@@ -1,18 +1,26 @@
 import asyncio
-from aiogram import Bot, Dispatcher
 
-from app.store.bot.manager import router
+from aiohttp import web
+from aiohttp.web import run_app
 
+from app.store.bot.manager import get_updates, send_message, polling
+from app.web.app import setup_app
 
-async def main():
-    bot = Bot(token='8044877151:AAGWmRwcjLTRqD3iIUFxm3-jFeWkHetkaX8')
-    dp = Dispatcher()
-    dp.include_router(router)
-    await dp.start_polling(bot)
+async def start_polling():
+    await polling()
 
+async def start_app():
+    app = setup_app(config_path="")
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 8080)
+    await site.start()
 
 if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print('Бот выключен')
+    loop = asyncio.get_event_loop()
+
+    loop.create_task(start_polling())
+    loop.create_task(start_app())
+
+    loop.run_forever()
