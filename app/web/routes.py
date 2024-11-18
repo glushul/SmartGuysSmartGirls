@@ -8,5 +8,9 @@ if typing.TYPE_CHECKING:
 
 def setup_routes(application: "Application"):
     import app.users.routes
+    import app.quizes.routes
+    import app.games.routes
 
     app.users.routes.register_urls(application)
+    app.quizes.routes.register_urls(application)
+    app.games.routes.register_urls(application)
