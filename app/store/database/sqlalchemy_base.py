@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, BigInteger, String, Integer, ForeignKey, BOOLEAN, Sequence
+from sqlalchemy import Column, BigInteger, String, Integer, ForeignKey, BOOLEAN, Sequence, Nullable
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import BOOLEANTYPE, TIMESTAMP
 
@@ -39,6 +39,7 @@ class GameModel(Base):
     created_at = Column(TIMESTAMP, nullable=False)
     ended_at = Column(TIMESTAMP, nullable=True)
     state = Column(String, nullable=False)
+    current_question_id = Column(Integer, ForeignKey('questions.id', ondelete='CASCADE'), nullable=True)
 
     participants = relationship("ParticipantModel", cascade="all, delete-orphan", backref="games", passive_deletes=True)
     game_questions = relationship("GameQuestionModel", cascade="all, delete-orphan", backref="games", passive_deletes=True)
@@ -54,8 +55,8 @@ class ParticipantModel(Base):
     game_id = Column(Integer, ForeignKey('games.id', ondelete='CASCADE'), primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
     level = Column(Integer, nullable=False)
-    correct_answers = Column(Integer, nullable=False)
-    incorrect_answers = Column(Integer, nullable=False)
+    correct_answers = Column(Integer, nullable=False, default=0)
+    incorrect_answers = Column(Integer, nullable=False, default=0)
     current = Column(BOOLEAN, nullable=False)
 
 
@@ -73,3 +74,9 @@ class ChatModel(Base):
     id = Column(BigInteger, primary_key=True)
 
     games = relationship("GameModel", cascade="all, delete-orphan", backref="chats", passive_deletes=True)
+    chat_updates = relationship("ChatUpdateModel", cascade="all, delete-orphan", backref="chats", passive_deletes=True)
+
+class ChatUpdateModel(Base):
+    __tablename__ = "chat_updates"
+    chat_id = Column(BigInteger, ForeignKey('chats.id', ondelete='CASCADE'), primary_key=True)
+    offset = Column(BigInteger, nullable=False)

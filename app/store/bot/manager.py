@@ -1,76 +1,143 @@
+import aiohttp
 import asyncio
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import SQLAlchemyError
 from typing import TYPE_CHECKING
 
-import aiohttp
-from pyexpat.errors import messages
-from sqlalchemy import select
-
-from app.store.database.sqlalchemy_base import ChatModel
+from app.store.database.sqlalchemy_base import ChatModel, ChatUpdateModel
+from app.utils import Constants
 
 if TYPE_CHECKING:
     from app.web.app import Application
 
-TOKEN = '7672228221:AAGQstNZ4c4r30Ld6gqLAF-7yxmWSFJN-4Y'
-BOT_ID =  7672228221
-API_URL = f"https://api.telegram.org/bot{TOKEN}/"
 
 class BotAccessor:
     def __init__(self, app: "Application"):
         self.app = app
+        self._session = None
+        self.api_url = f"https://api.telegram.org/bot{Constants.TOKEN}/"
 
-    async def get_updates(self, offset=None):
-        url = API_URL + 'getUpdates'
+    @property
+    def session(self):
+        if self._session is None:
+            self._session = aiohttp.ClientSession()
+        return self._session
+
+    async def close(self):
+        if self._session:
+            await self._session.close()
+
+    async def get_updates(self, offset: int = None):
+        url = f"{self.api_url}getUpdates"
         params = {'timeout': 100}
         if offset is not None:
             params['offset'] = offset
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params) as response:
+
+        try:
+            async with self.session.get(url, params=params) as response:
+                response.raise_for_status()
                 return await response.json()
+        except aiohttp.ClientError as e:
+            print(f"Ошибка при получении обновлений с Telegram API: {e}")
+            return {}
 
-    async def send_message(self, chat_id, text: str | None):
-        url = API_URL + 'sendMessage'
+    async def send_message(self, chat_id: int, text: str):
+        url = f"{self.api_url}sendMessage"
         params = {'chat_id': chat_id, 'text': text}
-        if text is not None:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, params=params) as response:
-                    return await response.json()
 
-    async def get_last_update_id(self):
-        updates = await self.get_updates()
-        if updates.get('result'):
-            return updates['result'][-1]['update_id']
-        return None
+        try:
+            async with self.session.post(url, params=params) as response:
+                response.raise_for_status()
+                return await response.json()
+        except aiohttp.ClientError as e:
+            print(f"Ошибка при отправке сообщения: {e}")
+            return {}
 
-    async def process_updates(self, offset=None):
+    async def send_message_with_button(self, chat_id: int, text: str, keyboard):
+        url = f"{self.api_url}sendMessage"
+
+        payload = {
+            "chat_id": chat_id,
+            "text": text,
+            "reply_markup": keyboard
+        }
+
+        print(keyboard)
+
+        async with self.session.post(url, json=payload) as response:
+            if response.status == 200:
+                print("Сообщение отправлено успешно.")
+
+    async def answer_callback_query(self, callback_query_id: str, text = str):
+        url = f"{self.api_url}answerCallbackQuery"
+        payload = {
+            "callback_query_id": callback_query_id,
+            "text": text,
+            "show_alert": False
+        }
+        async with self.session.post(url, json=payload) as response:
+            if response.status == 200:
+                print("Callback закрыт успешно.")
+
+    async def get_chat_offset(self, chat_id: int):
+        try:
+            async with self.app.database.session as session:
+                result = await session.execute(
+                    select(ChatUpdateModel.offset).where(ChatUpdateModel.chat_id == chat_id)
+                )
+                return result.scalar_one_or_none()
+        except SQLAlchemyError as e:
+            print(f"Ошибка при получении offset для чата {chat_id}: {e}")
+            return None
+
+    async def save_chat_offset(self, chat_id: int, offset: int):
+        try:
+            async with self.app.database.session as session:
+                stmt = insert(ChatUpdateModel).values(chat_id=chat_id, offset=offset)
+                stmt = stmt.on_conflict_do_update(
+                    index_elements=['chat_id'],
+                    set_={'offset': offset}
+                )
+
+                await session.execute(stmt)
+                await session.commit()
+        except SQLAlchemyError as e:
+            print(f"Ошибка при сохранении offset для чата {chat_id} в базе данных: {e}")
+
+    async def process_updates(self, offset: int = None):
         updates = await self.get_updates(offset)
-        if updates.get('result'):
-            for update in updates['result']:
-                message = update.get('message')
+        for update in updates.get('result', []):
+            try:
+                update_id = update.get('update_id')
+                message = update.get("message")
 
-                if message:
-                    if 'new_chat_members' in message:
-                        for new_member in message['new_chat_members']:
-                            if new_member.get('is_bot'):
-                                chat_id = message['chat']['id']
-                                if new_member.get("id") == BOT_ID:
-                                    await self.send_message(chat_id,f"Привет! Я бот {new_member['username']} и рад быть здесь! Напиши /start, чтобы начать игру")
-                                    if await self.app.store.games.get_chat_by_id(chat_id) is None:
-                                        await self.app.store.games.create_chat(chat_id)
+                if update_id is not None:
+                    offset = update_id + 1
 
-                    text = message.get('text')
-                    if text is not None:
-                        chat_id = message['chat']['id']
-                        response_message = await self.app.bot_handler.handle_updates(message=message, chat_id=chat_id)
-                        await self.send_message(chat_id, response_message)
+                await self.app.bot_handler.handle_updates(update=update)
 
-                    offset = update['update_id'] + 1
+                if 'chat' in message:
+                    chat_id = message['chat']['id']
+                    await self.save_chat_offset(chat_id, offset)
 
-            return offset
+            except Exception as e:
+                print(f"Ошибка при обработке обновления: {e}")
+                print("Полное обновление:", update)
+
+        return offset
 
     async def polling(self):
-        last_update_id = await self.get_last_update_id()
-        offset = last_update_id + 1 if last_update_id is not None else None
-
+        offset = await self.get_last_global_offset()
         while True:
             offset = await self.process_updates(offset)
-            await asyncio.sleep(1)
+
+    async def get_last_global_offset(self):
+        try:
+            async with self.app.database.session as session:
+                result = await session.execute(select(ChatUpdateModel.offset))
+                rows = result.scalars().all()
+                return max(rows) if rows else None
+        except SQLAlchemyError as e:
+            print(f"Ошибка при получении последнего global offset: {e}")
+            return None

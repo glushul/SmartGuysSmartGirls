@@ -1,5 +1,4 @@
 import typing
-
 from app.store.database.database import Database
 
 if typing.TYPE_CHECKING:
@@ -8,13 +7,18 @@ if typing.TYPE_CHECKING:
 
 class Store:
     def __init__(self, app: "Application"):
-        from app.users.accessor import UserAccessor
-        from app.quizes.accessor import QuizAccessor
-        from app.games.accessor import GameAccessor
+        from app.users.accessor import UserAccessor, ChatAccessor, ChatUpdateAccessor
+        from app.games.accessor import GameAccessor, ParticipantAccessor
+        from app.quizes.accessor import ThemeAccessor, QuestionAccessor, AnswerAccessor
 
         self.users = UserAccessor(app)
-        self.quizzes = QuizAccessor(app)
+        self.chats = ChatAccessor(app)
+        self.chat_updates = ChatUpdateAccessor(app)
         self.games = GameAccessor(app)
+        self.participants = ParticipantAccessor(app)
+        self.themes = ThemeAccessor(app)
+        self.questions = QuestionAccessor(app)
+        self.answers = AnswerAccessor(app)
 
 
 def setup_store(app: "Application"):

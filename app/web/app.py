@@ -1,3 +1,4 @@
+import aiohttp
 from aiohttp.web import (
     Application as AiohttpApplication,
     Request as AiohttpRequest,

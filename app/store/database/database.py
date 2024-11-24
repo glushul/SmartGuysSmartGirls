@@ -36,7 +36,7 @@ class Database:
             bind=self.engine,
             class_=AsyncSession,
             expire_on_commit=False
-        )
+        ).begin()
 
     async def disconnect(self, *args: Any, **kwargs: Any) -> None:
         if self.engine:
