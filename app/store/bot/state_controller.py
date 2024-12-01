@@ -22,6 +22,7 @@ class GameStates(Enum):
     WAITING_FOR_ANSWER_TIME = "WAITING_FOR_ANSWER_TIME"
     QUESTION_ASKED = "QUESTION_ASKED"
     WAITING_FOR_ANSWER = "WAITING_FOR_ANSWER"
+    GAME_STOPED = "GAME_STOPED"
     GAME_ENDED = "GAME_ENDED"
 
 
@@ -101,23 +102,22 @@ class BotHandler:
             )
             return
 
-        if game.state == GameStates.GAME_ENDED.value:
-            await self._score_table_command_handle(
-                game=game,
-                text=text
-            )
-            await self._info_command_handle(
-                chat_id=chat_id,
-                text=text
-            )
-            await self.__none_handle(
-                text=text,
-                chat_id=chat_id
-            )
-            return
-
         # Обработка в зависимости от состояния игры
         match game.state:
+            case GameStates.GAME_ENDED.value:
+                await self._score_table_command_handle(
+                    game=game,
+                    text=text
+                )
+                await self._info_command_handle(
+                    chat_id=chat_id,
+                    text=text
+                )
+                await self.__none_handle(
+                    text=text,
+                    chat_id=chat_id
+                )
+                return
             case GameStates.WAITING_FOR_ANSWER_TIME.value:
                 await self._waiting_for_answer_time_handle(
                     text=text,
@@ -130,12 +130,16 @@ class BotHandler:
                     game=game
                 )
             case GameStates.QUESTION_ASKED.value:
+                await self._stop_command_handle(text=text, game=game)
                 await self._question_asked_handle(game=game)
             case GameStates.WAITING_FOR_ANSWER.value:
+                await self._stop_command_handle(text=text, game=game)
                 await self._waiting_for_answer_handle(
                     update=update,
                     game=game
                 )
+            case GameStates.GAME_STOPED.value:
+                await self._game_stoped_handle(text=text, game=game)
     # endregion
 
     # region Обработка отсутствия статуса игры
@@ -321,8 +325,8 @@ class BotHandler:
 
     async def _start_timer(self, game: GameModel) -> None:
         if game.id in self.timers:
-            self.timers[game.id].cancel()  # Отмена старого таймера
-        self.timers[game.id] = asyncio.create_task(self._handle_answer_timeout(game))  # Создание нового таймера
+            self.timers[game.id].cancel()
+        self.timers[game.id] = asyncio.create_task(self._handle_answer_timeout(game))
 
     async def _handle_answer_timeout(self, game: GameModel):
         try:
@@ -537,12 +541,32 @@ class BotHandler:
                 text=Constants.GREETING
             )
 
-
     async def _score_table_command_handle(self, game: GameModel, text: str):
         if text == "/score_table@SmartGirls_SmartBoys_Bot":
             await self.app.bot_accessor.send_message(
                 chat_id=game.chat_id,
                 text=await self._get_score_table(game=game)
             )
+
+    async def _stop_command_handle(self, game: GameModel, text: str):
+        if text == "/stop@SmartGirls_SmartBoys_Bot":
+            await self.app.store.games.update_game(game_id=game.id, state=GameStates.GAME_STOPED.value)
+            await self.app.bot_accessor.send_message(
+                chat_id=game.chat_id,
+                text="Игра остановилась!"
+            )
+        if game.id in self.timers:
+            timer = self.timers[game.id]
+            if timer:
+                timer.cancel()
+
+    async def _game_stoped_handle(self, game: GameModel, text: str):
+        if text == "/start@SmartGirls_SmartBoys_Bot":
+            await self.app.store.games.update_game(game_id=game.id, state=GameStates.QUESTION_ASKED.value)
+            await self.app.bot_accessor.send_message(
+                chat_id=game.chat_id,
+                text="Игра продолжается!"
+            )
+            await self._question_asked_handle(game=game)
 
     # endregion

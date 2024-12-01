@@ -18,7 +18,7 @@ class GameAccessor:
         self.app = app
 
     async def create_game(self, chat_id: int, answer_time: int = Constants.DEFAULT_ANSWER_TIME) -> GameModel:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 insert(GameModel).values(
                     chat_id=chat_id,
@@ -32,38 +32,35 @@ class GameAccessor:
         return game
 
     async def get_game_by_game_id(self, game_id: int) -> GameModel | None:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 select(GameModel)
                 .where(GameModel.id == game_id)
             )
             game = result.scalars().first()
-            await session.commit()
         return game
 
     async def get_game_by_chat_id(self, chat_id: int) -> GameModel | None:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 select(GameModel)
                 .where(GameModel.chat_id == chat_id)
                 .order_by(GameModel.created_at.desc())
             )
             game = result.scalars().first()
-            await session.commit()
         return game
 
     async def list_games(self) -> Sequence[GameModel] | Sequence[None]:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 select(GameModel)
                 .order_by(GameModel.created_at.desc())
             )
             games = result.scalars().all()
-            await session.commit()
         return games
 
     async def update_game(self, game_id: int, **fields) -> GameModel:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 update(GameModel)
                 .where(GameModel.id == game_id)
@@ -75,7 +72,7 @@ class GameAccessor:
         return game
 
     async def delete_game(self, game_id: int) -> None:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             await session.execute(
                 delete(GameModel)
                 .where(GameModel.id == game_id)
@@ -87,7 +84,7 @@ class ParticipantAccessor:
         self.app = app
 
     async def create_participant(self, game_id: int, user_id: int, level: int, current:bool=False) -> ParticipantModel:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 insert(ParticipantModel).values(
                     game_id=game_id,
@@ -101,7 +98,7 @@ class ParticipantAccessor:
         return participant
 
     async def update_participant(self, user_id: int, game_id: int, **fields) -> ParticipantModel:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 update(ParticipantModel)
                 .where(and_(
@@ -116,7 +113,7 @@ class ParticipantAccessor:
         return participant
 
     async def get_current_participant(self, game_id: int) -> ParticipantModel | None:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 select(ParticipantModel).where(
                     and_(ParticipantModel.current == True,
@@ -124,22 +121,20 @@ class ParticipantAccessor:
                 )
             )
             participants = result.scalars().first()
-            await session.commit()
         return participants
 
     async def get_participants_by_game_id(self, game_id: int) -> Sequence[ParticipantModel] | Sequence[None]:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 select(ParticipantModel)
                 .where(ParticipantModel.game_id == game_id)
                 .order_by(ParticipantModel.level.desc())
             )
             participants = result.scalars().all()
-            await session.commit()
         return participants
 
     async def get_participant_by_user_game_id(self, user_id: int, game_id: int) -> ParticipantModel | None:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 select(ParticipantModel).where(
                     and_(
@@ -149,11 +144,10 @@ class ParticipantAccessor:
                 )
             )
             participant = result.scalars().first()
-            await session.commit()
         return participant
 
     async def get_participant_by_game_level(self, level: int, game_id: int) -> ParticipantModel | None:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 select(ParticipantModel).where(
                     and_(ParticipantModel.level == level,
@@ -161,7 +155,6 @@ class ParticipantAccessor:
                 )
             )
             participants = result.scalars().first()
-            await session.commit()
         return participants
 
     async def change_current_participant(self, game_id: int) -> ParticipantModel | None:
@@ -189,7 +182,7 @@ class ParticipantAccessor:
 
             current_level = next_level
 
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             await session.execute(
                 update(ParticipantModel)
                 .where(ParticipantModel.game_id == game_id)
