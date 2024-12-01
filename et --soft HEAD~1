@@ -1,0 +1,38 @@
+[33mcommit c0b9eed58ca9e35ed60d995413ac73a64fd30428[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdev[m[33m, [m[1;31morigin/new-feature-branch[m[33m, [m[1;31morigin/dev[m[33m, [m[1;32mnew-feature-branch[m[33m)[m
+Author: ulyan <ulyana.glushchenko2031@mail.ru>
+Date:   Tue Nov 26 17:44:48 2024 +0300
+
+    Bot mechanics done, code beatified, queue added, requests added
+
+[33mcommit 1b2440d196c6648bb474bce3eefa31fdbce5b32e[m
+Author: ulyan <ulyana.glushchenko2031@mail.ru>
+Date:   Sun Nov 24 23:23:58 2024 +0300
+
+    Quiz's mechanics done
+
+[33mcommit 0521ab238284721edd5e88351331ccc72d8e63a7[m[33m ([m[1;31morigin/dev-backup[m[33m, [m[1;32mdev-second-commit[m[33m, [m[1;32mdev-backup[m[33m)[m
+Author: ulyan <ulyana.glushchenko2031@mail.ru>
+Date:   Wed Nov 20 14:54:01 2024 +0300
+
+    Game registration added
+
+[33mcommit 8f1995ec5f5408e8600687801e112d7a3c74fb01[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m
+Merge: a6f4dd5 a6dc902
+Author: Ulyana <91832680+glushul@users.noreply.github.com>
+Date:   Wed Nov 13 09:31:51 2024 +0300
+
+    Merge pull request #1 from glushul/dev
+    
+    Bot initialization
+
+[33mcommit a6dc9028f29de35b3b22015b479915d1f95d28fe[m
+Author: glushul <ulyana.glushchenko2031@mail.ru>
+Date:   Wed Nov 13 09:28:51 2024 +0300
+
+    Bot initialization
+
+[33mcommit a6f4dd53281987b82e7f600ba18b62e2c6fa529b[m
+Author: Ulyana <91832680+glushul@users.noreply.github.com>
+Date:   Mon Nov 11 18:31:26 2024 +0300
+
+    Initial commit

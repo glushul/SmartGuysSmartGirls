@@ -1,5 +1,14 @@
+from sqlalchemy import (
+    BOOLEAN,
+    BigInteger,
+    Column,
+    ForeignKey,
+    Integer,
+    Nullable,
+    Sequence,
+    String,
+)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, BigInteger, String, Integer, ForeignKey, BOOLEAN, Sequence, Nullable
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import BOOLEANTYPE, TIMESTAMP
 
@@ -21,7 +30,6 @@ class QuestionModel(Base):
     theme_id = Column(Integer, ForeignKey('themes.id', ondelete='CASCADE'), nullable=False)
 
     answers = relationship("AnswerModel", cascade="all, delete-orphan",  backref="questions", passive_deletes=True)
-    game_questions = relationship("GameQuestionModel", cascade="all, delete-orphan",  backref="questions", passive_deletes=True)
 
 class AnswerModel(Base):
     __tablename__ = "answers"
@@ -67,16 +75,12 @@ class UserModel(Base):
     name = Column(String, nullable=True)
     score = Column(Integer, nullable=False)
 
-    participants = relationship("ParticipantModel", cascade="all, delete-orphan", backref="users", passive_deletes=True)
-
 class ChatModel(Base):
     __tablename__ = "chats"
     id = Column(BigInteger, primary_key=True)
 
     games = relationship("GameModel", cascade="all, delete-orphan", backref="chats", passive_deletes=True)
-    chat_updates = relationship("ChatUpdateModel", cascade="all, delete-orphan", backref="chats", passive_deletes=True)
 
-class ChatUpdateModel(Base):
-    __tablename__ = "chat_updates"
-    chat_id = Column(BigInteger, ForeignKey('chats.id', ondelete='CASCADE'), primary_key=True)
-    offset = Column(BigInteger, nullable=False)
+class UpdateModel(Base):
+    __tablename__ = "updates"
+    offset = Column(BigInteger, primary_key=True)
