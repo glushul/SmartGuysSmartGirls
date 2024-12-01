@@ -4,7 +4,8 @@ from sqlalchemy import URL
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
-    async_sessionmaker, create_async_engine,
+    async_sessionmaker,
+    create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase
 
@@ -36,7 +37,7 @@ class Database:
             bind=self.engine,
             class_=AsyncSession,
             expire_on_commit=False
-        ).begin()
+        )
 
     async def disconnect(self, *args: Any, **kwargs: Any) -> None:
         if self.engine:

@@ -1,10 +1,12 @@
 import asyncio
 import typing
+
 from aiohttp import web
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application
 from app.web.app import setup_app
+
 
 async def start_polling(app: "Application"):
     await app.bot_accessor.polling()
