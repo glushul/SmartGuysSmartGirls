@@ -20,7 +20,7 @@ class ThemeAccessor:
         self.app = app
 
     async def create_theme(self, title: str) -> ThemeModel:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 insert(ThemeModel)
                 .values(title=title)
@@ -31,12 +31,11 @@ class ThemeAccessor:
         return theme
 
     async def list_themes(self) -> Sequence[ThemeModel] | Sequence[None]:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 select(ThemeModel)
             )
             themes = result.scalars().all()
-            await session.commit()
         return themes
 
 
@@ -45,7 +44,7 @@ class QuestionAccessor:
         self.app = app
 
     async def create_question(self, title: str, theme_id: int, answers: Iterable[AnswerModel]) -> QuestionModel:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 insert(QuestionModel)
                 .values(
@@ -66,7 +65,7 @@ class QuestionAccessor:
         return question
 
     async def create_game_question(self, game_id: int, question_id: int) -> QuestionModel:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 insert(GameQuestionModel)
                 .values(
@@ -79,26 +78,24 @@ class QuestionAccessor:
             return game_question
 
     async def list_questions_by_theme_id(self, theme_id: int) -> Sequence[QuestionModel] | Sequence[None]:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 select(QuestionModel)
                 .where(QuestionModel.theme_id == theme_id)
             )
             questions = result.scalars().all()
-            await session.commit()
             return questions
 
     async def list_questions(self) -> Sequence[QuestionModel] | Sequence[None]:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 select(QuestionModel)
             )
             questions = result.scalars().all()
-            await session.commit()
             return questions
 
     async def list_available_questions(self, game: GameModel) -> Sequence[QuestionModel] | Sequence[None]:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             subquery = select(GameQuestionModel.question_id).filter(GameQuestionModel.game_id == game.id).subquery()
 
             result = await session.execute(
@@ -108,7 +105,6 @@ class QuestionAccessor:
             )
 
             questions = result.scalars().all()
-            await session.commit()
             return questions
 
 class AnswerAccessor:
@@ -116,7 +112,7 @@ class AnswerAccessor:
         self.app = app
 
     async def create_answer(self, title: str, is_correct: bool, question_id: int) -> AnswerModel:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 insert(AnswerModel)
                 .values(
@@ -131,21 +127,19 @@ class AnswerAccessor:
             return answer
 
     async def list_answers_by_question_id(self, question_id: int) -> Sequence[AnswerModel] | Sequence[None]:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 select(AnswerModel)
                 .where(AnswerModel.question_id == question_id)
             )
             answers = result.scalars().all()
-            await session.commit()
             return answers
 
     async def get_answer_by_id(self, answer_id: int) -> AnswerModel | None:
-        async with self.app.database.session.begin() as session:
+        async with self.app.database.session() as session:
             result = await session.execute(
                 select(AnswerModel)
                 .where(AnswerModel.id == answer_id)
             )
             answer = result.scalars().first()
-            await session.commit()
             return answer
